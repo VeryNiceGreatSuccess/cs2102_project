@@ -1,6 +1,6 @@
 # CS2102 Project (Part 2)
 
-## Also must do Report
+## Report
 📝 [Link to report](https://docs.google.com/document/d/1gLRTJ6jv_zPMYGIi93_ldxHyeZe1wRLD7x3gZH0OwO8/edit)
 
 ## Deadline
