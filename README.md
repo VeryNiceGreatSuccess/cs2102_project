@@ -23,3 +23,4 @@ the minimum order amount.
 (11) A delivery complaint can only be made when the product has been delivered.\
 (12) A complaint is either a delivery-related complaint, a shop-related complaint or a comment-related\
 complaint (non-overlapping and covering).
+
