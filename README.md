@@ -21,6 +21,6 @@ the minimum order amount.
 (10) A review has at least one review version.\
 #### Complaint related:
 (11) A delivery complaint can only be made when the product has been delivered.\
-(12) A complaint is either a delivery-related complaint, a shop-related complaint or a comment-related\
+(12) A complaint is either a delivery-related complaint, a shop-related complaint or a comment-related
 complaint (non-overlapping and covering).
 
