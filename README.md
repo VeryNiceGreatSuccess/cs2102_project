@@ -18,7 +18,7 @@ the minimum order amount.
 (7) A user can only make a product review for a product that they themselves purchased.\
 (8) A comment is either a review or a reply, not both (non-overlapping and covering).\
 (9) A reply has at least one reply version.\
-(10) A review has at least one review version.\
+(10) A review has at least one review version.
 #### Complaint related:
 (11) A delivery complaint can only be made when the product has been delivered.\
 (12) A complaint is either a delivery-related complaint, a shop-related complaint or a comment-related
