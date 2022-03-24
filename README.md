@@ -7,6 +7,9 @@
 ⏰ Due on ***8 April 2022***
 
 ## Constraints to be Enforced using Triggers
+
+Please implement appropriate triggers to enforce the following 12 constraints. For simplicity, you only need to consider ***INSERT*** triggers (i.e., triggers that are activated by insertions), and do ***NOT*** need to consider DELETE or UPDATE.
+
 #### Product related:
 (1) Each shop should sell at least one product.
 #### Order related:
