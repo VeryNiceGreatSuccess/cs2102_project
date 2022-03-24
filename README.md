@@ -28,3 +28,5 @@ the minimum order amount.
 (12) A complaint is either a delivery-related complaint, a shop-related complaint or a comment-related
 complaint (non-overlapping and covering).
 
+## ER Diagram
+![ER Diagram](https://user-images.githubusercontent.com/34131671/159929574-6e9c3b74-abd6-45a4-af14-f069e29dc892.png)
