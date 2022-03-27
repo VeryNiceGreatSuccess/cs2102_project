@@ -1,20 +1,18 @@
-/* --------- Each shop should sell at least one product. ------------ */
+/* (1) Each shop should sell at least one product. */
 
 /* --------------------------------------- insert VALID data ✅  ----*/
 
 BEGIN;
-
-INSERT INTO shop VALUES
-	(1, 'Takashimaya');
-INSERT INTO category VALUES
-	(1, 'Home Appliances', NULL);
-INSERT INTO manufacturer VALUES
-	(1, 'Tefal', 'Germany');
-INSERT INTO product VALUES
-	(1, 'Rice Cooker', 'makes nice rice', 1, 1);
-INSERT INTO sells VALUES
-	(1, 1, NOW(), 59.99, 20);
-
+	INSERT INTO shop VALUES
+		(1, 'Takashimaya');
+	INSERT INTO category VALUES
+		(1, 'Home Appliances', NULL);
+	INSERT INTO manufacturer VALUES
+		(1, 'Tefal', 'Germany');
+	INSERT INTO product VALUES
+		(1, 'Rice Cooker', 'makes nice rice', 1, 1);
+	INSERT INTO sells VALUES
+		(1, 1, NOW(), 59.99, 20);
 COMMIT;
 
 /* verify that insertion was SUCCESSFUL */
@@ -43,19 +41,14 @@ DELETE FROM shop;
 
 /* ------------------------------ insert INVALID data ❌ -------- */
 BEGIN;
-
-INSERT INTO shop VALUES
-	(1, 'Takashimaya');
-
-INSERT INTO users VALUES
-	(1, 'clementi, singapore', 'Ah Beng', FALSE);
-
-INSERT INTO complaint VALUES
-	(1, 'not working', 'pending', 1, NULL);
-
-INSERT INTO shop_complaint VALUES
-	(1, 1);
-
+	INSERT INTO shop VALUES
+		(1, 'Takashimaya');
+	INSERT INTO users VALUES
+		(1, 'clementi, singapore', 'Ah Beng', FALSE);
+	INSERT INTO complaint VALUES
+		(1, 'not working', 'pending', 1, NULL);
+	INSERT INTO shop_complaint VALUES
+		(1, 1);
 COMMIT;
 
 /* verify that insertion was PREVENTED */
@@ -63,8 +56,7 @@ DO $$
 DECLARE
 	num_shops int := 0;
 	num_complaints int := 0;
-BEGIN
-	
+BEGIN	
 	SELECT COUNT(*) into num_shops
 	FROM shop;
 
