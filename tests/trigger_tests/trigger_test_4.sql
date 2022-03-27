@@ -59,9 +59,10 @@ BEGIN;
 	INSERT INTO orderline VALUES
 		(1, 1, 1, '2016-06-22', 3, 9.99, 'being_processed', NULL);	
 
-	/* ❌ customer tries to make a refund for quantity of 5 when only placed order for 3 */
+	/* ❌ customer tries to make a refund for quantity of 2+3=5 when only placed order for 3 */
 	INSERT INTO refund_request VALUES
-		(1, NULL, 1, 1, 1, '2016-06-22', 5, '2016-06-27', 'pending', NULL, NULL);
+		(1, NULL, 1, 1, 1, '2016-06-22', 2, '2016-06-27', 'pending', NULL, NULL),
+		(2, NULL, 1, 1, 1, '2016-06-22', 3, '2016-06-27', 'pending', NULL, NULL);
 COMMIT;
 
 /* verify that insertion was PREVENTED */
@@ -69,15 +70,29 @@ COMMIT;
 DO $$
 DECLARE
 	num_refunds INT := 0;
+	total_refund_quantity INT := 0;
 BEGIN	
 	SELECT count(*) INTO num_refunds
 	FROM refund_request;
 
-	IF (num_refunds = 0) THEN
-		RAISE NOTICE 'refund request was not inserted ✅';
+	IF (num_refunds = 1) THEN
+		SELECT sum(quantity) INTO total_refund_quantity
+		FROM refund_request;
+
+		RAISE NOTICE 'total_refund_quantity: %', total_refund_quantity;
+
+		IF (total_refund_quantity <= 3) THEN
+			RAISE NOTICE 'the violating refund request was not inserted ✅';
+		ELSE
+			RAISE NOTICE 'the wrong refund request was rejected ❌';
+		END IF;
+
+	ELSEIF (num_refunds = 0) THEN
+		RAISE WARNING 'both refund requests were not inserted when one should have been ❌';
 	ELSE
-		RAISE WARNING 'refund request was inserted when it should not have been ❌';
+		RAISE WARNING 'both refund requests were inserted when one should not have been ❌';
 	END IF;
+
 END $$;
 
 /* cleanup */
