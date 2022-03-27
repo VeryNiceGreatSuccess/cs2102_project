@@ -56,6 +56,8 @@ BEGIN;
 		(1, 1, '2016-06-22', 59.99, 3);
 	INSERT INTO orders VALUES
 		(1, 1, NULL, 'clementi, singapore', 59.99*3);
+	INSERT INTO orderline VALUES
+		(1, 1, 1, '2016-06-22', 3, 9.99, 'being_processed', NULL);	
 
 	/* ❌ customer tries to make a refund for quantity of 5 when only placed order for 3 */
 	INSERT INTO refund_request VALUES

@@ -144,28 +144,35 @@ CREATE OR REPLACE FUNCTION trigger4_func()
 RETURNS TRIGGER AS $$
 DECLARE
 	orderline_product_quantity INT := 0;
+	total_product_refund_request_quantity INT := 0;
 BEGIN
-	
-	SELECT quantity INTO orderline_product_quantity
+
+	SELECT COALESCE(quantity, 0) INTO orderline_product_quantity
 	FROM orderline
 	WHERE order_id = NEW.order_id AND 
 		shop_id = NEW.shop_id AND
 		product_id = NEW.product_id AND
 		sell_timestamp = NEW.sell_timestamp;
+	
+	SELECT COALESCE(SUM(quantity), 0) INTO total_product_refund_request_quantity 
+	FROM refund_request
+	GROUP BY order_id, shop_id, product_id, sell_timestamp;	
 
-	IF (COALESCE(orderline_product_quantity, 0) < NEW.quantity) THEN
-		orderline_product_quantity := 0; /* reset the variable to 0 */
-		RETURN NULL;
+	IF (orderline_product_quantity < total_product_refund_request_quantity) THEN
+		DELETE FROM refund_request
+		WHERE id = NEW.id; /* only delete the refund request that causes this constraint to be violated */
 	END IF;
 
 	orderline_product_quantity := 0; /* reset the variable to 0 */
+	total_product_refund_request_quantity := 0; /* reset the variable to 0 */
 
-	RETURN NEW;
+	RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trigger4
-BEFORE INSERT ON refund_request
+CREATE CONSTRAINT TRIGGER trigger4
+AFTER INSERT ON refund_request
+DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
 	EXECUTE FUNCTION trigger4_func();
 
