@@ -75,22 +75,10 @@ BEGIN
 	SELECT count(*) INTO num_refunds
 	FROM refund_request;
 
-	IF (num_refunds = 1) THEN
-		SELECT sum(quantity) INTO total_refund_quantity
-		FROM refund_request;
-
-		RAISE NOTICE 'total_refund_quantity: %', total_refund_quantity;
-
-		IF (total_refund_quantity <= 3) THEN
-			RAISE NOTICE 'the violating refund request was not inserted ✅';
-		ELSE
-			RAISE NOTICE 'the wrong refund request was rejected ❌';
-		END IF;
-
-	ELSEIF (num_refunds = 0) THEN
-		RAISE WARNING 'both refund requests were not inserted when one should have been ❌';
+	IF (num_refunds = 0) THEN
+		RAISE NOTICE 'refund request(s) were NOT inserted ✅';
 	ELSE
-		RAISE WARNING 'both refund requests were inserted when one should not have been ❌';
+		RAISE WARNING 'refund request(s) were inserted when they should not have been ❌';
 	END IF;
 
 END $$;

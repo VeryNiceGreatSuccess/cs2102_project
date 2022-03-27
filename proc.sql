@@ -13,11 +13,7 @@ BEGIN
 	WHERE S.shop_id = NEW.id;
 
 	IF (num_products_sold = 0) THEN		
-		DELETE FROM shop_complaint C /* also remove any complaints pertaining to the shop (if any were inserted in the same query) */
-		WHERE C.shop_id = NEW.id;
-
-		DELETE FROM shop S   		/* remove the shop to prevent it from being inserted */
-		WHERE S.id = NEW.id;
+		RAISE EXCEPTION 'Each shop should sell at least one product';
 	END IF;					
 
 	num_products_sold := 0;			/* reset the variable to 0 */
@@ -25,25 +21,6 @@ BEGIN
 	RETURN NULL; 					/* the return value does not matter since this function is executed AFTER op */
 END;
 $$ LANGUAGE plpgsql;
-
-/* function to delete parent complaints */
-CREATE OR REPLACE FUNCTION trigger1_a_func()
-RETURNS TRIGGER AS $$
-BEGIN
-	
-	DELETE FROM complaint C
-	WHERE C.id = OLD.id;
-
-	RETURN OLD;
-	
-END;
-$$ LANGUAGE plpgsql;
-
-/* trigger to also delete parent complaints of shop_complaints deleted */
-CREATE TRIGGER trigger1_a
-AFTER DELETE ON shop_complaint
-FOR EACH ROW
-	EXECUTE FUNCTION trigger1_a_func();
 
 CREATE CONSTRAINT TRIGGER trigger1
 AFTER INSERT ON shop
@@ -64,8 +41,7 @@ BEGIN
 	WHERE orderline.order_id = NEW.id;
 
 	IF (num_products_in_order = 0) THEN
-		DELETE FROM orders
-		WHERE orders.id = NEW.id;
+		RAISE EXCEPTION 'an order must involve one or more products from one or more shops';
 	END IF;
 
 	num_products_in_order := 0; /* reset the variable to 0 */
@@ -112,17 +88,8 @@ BEGIN
 	WHERE coupon_batch.id = NEW.coupon_id;
 
 	IF (total_amount_of_order <= min_order_amount_of_coupon) THEN
-		/*
-		UPDATE orders
-		SET coupon_id = NULL
-		WHERE orders.id = NEW.id;
-		*/
-
-		DELETE FROM orderline
-		WHERE orderline.order_id = NEW.id;
-
-		DELETE FROM orders
-		WHERE orders.id = NEW.id;	
+		RAISE EXCEPTION 'A coupon can only be used on an order whose total amount (before the coupon is applied) exceeds
+the minimum order amount';
 	END IF;
 
 	total_amount_of_order := 0;			/* reset the variable to 0 */
@@ -159,8 +126,7 @@ BEGIN
 	GROUP BY order_id, shop_id, product_id, sell_timestamp;	
 
 	IF (orderline_product_quantity < total_product_refund_request_quantity) THEN
-		DELETE FROM refund_request
-		WHERE id = NEW.id; /* only delete the refund request that causes this constraint to be violated */
+		RAISE EXCEPTION 'the refund quantity must not exceed the ordered quantity';
 	END IF;
 
 	orderline_product_quantity := 0; /* reset the variable to 0 */
@@ -176,6 +142,7 @@ DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
 	EXECUTE FUNCTION trigger4_func();
 
+/* (5) The refund request date must be within 30 days of the delivery date. */
 
 
 /* --- Procedures --------------------------------------------------------------------------- */
