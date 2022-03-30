@@ -1,7 +1,6 @@
  --- Triggers ----------------------------------------------------------------------------- */
 
 /* (1) Each shop should sell at least one product */
-
 CREATE OR REPLACE FUNCTION trigger1_func()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -26,6 +25,7 @@ AFTER INSERT ON shop
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
 	EXECUTE FUNCTION trigger1_func();
+
 
 /* (2) An order must involve one or more products from one or more shops. */
 
@@ -54,6 +54,7 @@ AFTER INSERT ON orders
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
 	EXECUTE FUNCTION trigger2_func();
+
 
 /* (3) A coupon can only be used on an order whose total amount (before the coupon is applied) exceeds
 the minimum order amount. */
@@ -104,6 +105,8 @@ DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
 	EXECUTE FUNCTION trigger3_func();
 
+
+
 /* (4) The refund quantity must not exceed the ordered quantity. */
 
 CREATE OR REPLACE FUNCTION trigger4_func()
@@ -141,24 +144,23 @@ DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
 	EXECUTE FUNCTION trigger4_func();
 
+
+
 /* (5) The refund request date must be within 30 days of the delivery date. */
+
 CREATE OR REPLACE FUNCTION trigger5_func() RETURNS TRIGGER AS $$
 DECLARE 
      dd DATE;
 BEGIN 
-    SELECT O.delivery_date INTO dd
-    FROM orderline O
-    WHERE O.order_id = NEW.order_id
-    	AND O.shop_id = NEW.shop_id
-    	AND O.product_id = NEW.product_id
-    	AND O.sell_timestamp = NEW.sell_timestamp;
+     SELECT delivery_date INTO dd
+     FROM orderline 
+     WHERE NEW.order_id = orderline.order_id AND NEW.product_id = orderline.product_id
+            AND NEW.shop_id = orderline.shop_id AND NEW.sell_timestamp = orderline.sell_timestamp;
 
      IF ((NEW.request_date - dd) < 30) THEN 
           RETURN NEW;
      ELSE 
-               -- DELETE FROM refund_request WHERE NEW.id = refund_request.id;
-               -- RETURN NULL;
-                RAISE EXCEPTION 'Constraint 5 violated';
+         RAISE EXCEPTION 'Constraint 5 violated';
      END IF; 
 
 END; 
@@ -168,7 +170,10 @@ CREATE CONSTRAINT TRIGGER trigger5
 AFTER INSERT ON refund_request
 FOR EACH ROW EXECUTE FUNCTION trigger5_func();
 
+
+
 /* (6) Refund request can only be made for a delivered product */
+
 CREATE OR REPLACE FUNCTION trigger6_func()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -177,9 +182,9 @@ BEGIN
     SELECT O.status INTO product_status
     FROM orderline O
     WHERE O.order_id = NEW.order_id
-    	AND O.shop_id = NEW.shop_id
-    	AND O.product_id = NEW.product_id
-    	AND O.sell_timestamp = NEW.sell_timestamp;
+    AND O.shop_id = NEW.shop_id
+    AND O.product_id = NEW.product_id
+    AND O.sell_timestamp = NEW.sell_timestamp;
 
     IF (product_status = 'being_processed' OR product_status = 'shipped') THEN
         RETURN NULL;
@@ -194,10 +199,50 @@ BEFORE INSERT ON refund_request
 FOR EACH ROW
     EXECUTE FUNCTION trigger6_func();
 
+
+
 /* (7) A user can only make a product review for a product that they themselves purchased. */
+
+CREATE OR REPLACE FUNCTION trigger7_func() RETURNS TRIGGER AS $$ 
+DECLARE 
+
+    user_id INTEGER; 
+    order_id INTEGER;
+    
+
+BEGIN
+
+    SELECT comment.user_id INTO user_id 
+    FROM comment 
+    WHERE NEW.id = comment.id;
+ 
+    SELECT o1.order_id INTO order_id 
+    FROM orderline o1
+    WHERE o1.order_id = NEW.order_id 
+          AND o1.shop_id = NEW.shop_id
+          AND o1.product_id = NEW.product_id
+         AND o1.sell_timestamp = NEW.sell_timestamp;
+
+     IF ((SELECT orders.user_id FROM orders
+     WHERE orders.id = order_id
+     GROUP BY orders.user_id) = user_id) THEN 
+          RETURN NEW;
+
+      ELSE 
+           RAISE EXCEPTION 'Constraint 7 violated';
+      END IF; 
+
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE CONSTRAINT TRIGGER  trigger7
+AFTER INSERT ON review
+FOR EACH ROW EXECUTE FUNCTION trigger7_func();
+
 
 
 /* (8) A comment is either a review or a reply, not both (non-overlapping and covering) */
+
 CREATE OR REPLACE FUNCTION trigger8a_func()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -249,11 +294,78 @@ AFTER INSERT ON comment
 FOR EACH ROW
     EXECUTE FUNCTION trigger8c_func();
 
+
+
 /* (9) A reply has at least one reply version */
+
+CREATE OR REPLACE FUNCTION trigger9_func() RETURNS
+TRIGGER AS $$ 
+BEGIN        
+IF ((SELECT COUNT(*)
+      FROM reply_version
+      WHERE reply_version.reply_id = NEW.id) < 1) THEN
+      RAISE EXCEPTION 'Constraint 9 is violated';
+ELSE
+      RETURN NEW;
+END IF;
+
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE CONSTRAINT TRIGGER trigger9
+AFTER INSERT ON reply 
+FOR EACH ROW EXECUTE FUNCTION trigger9_func(); 
+
+
 
 /* (10) A review has at least one review version */
 
+CREATE OR REPLACE FUNCTION trigger10_func() RETURNS
+TRIGGER AS $$ 
+BEGIN        
+IF ((SELECT COUNT(*)
+      FROM review_version
+      WHERE review_version.review_id = NEW.i) < 1) THEN
+      RAISE EXCEPTION 'Constraint 10 is violated';
+ELSE
+      RETURN NEW;
+END IF;
+
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE CONSTRAINT TRIGGER trigger10
+AFTER INSERT ON reply 
+FOR EACH ROW EXECUTE FUNCTION trigger10_func();  
+
+
+
 /* (11) A delivery complaint can only be made when the product has been delivered */
+
+CREATE OR REPLACE FUNCTION trigger11_func() RETURNS TRIGGER AS $$ 
+DECLARE 
+      status VARCHAR(20);
+BEGIN
+       SELECT orderline.orderline_status INTO status
+       FROM orderline
+       WHERE orderline.order_id = NEW.order_id 
+            AND orderline.shop_id = NEW.shop_id 
+            AND orderline.product_id = NEW.product_id
+            AND orderline.sell_timestamp = NEW.sell_timestamp;
+
+       IF (status = 'delivered') THEN 
+            RETURN NEW;
+        ELSE 
+             RAISE EXCEPTION 'Constraint 11 is violated';
+        END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE CONSTRAINT TRIGGER trigger11
+AFTER INSERT ON delivery_complaint
+FOR EACH ROW EXECUTE FUNCTION trigger11_func();
+
+
 
 /* (12) A complaint is either a delivery-related complaint, a shop-related complaint or a comment-related complaint (non-overlapping and covering) */
 CREATE OR REPLACE FUNCTION trigger12a_func()
