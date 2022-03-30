@@ -7,7 +7,6 @@ RETURNS TRIGGER AS $$
 DECLARE
 	num_products_sold INT := 0;
 BEGIN
-	
 	SELECT COUNT(*) INTO num_products_sold
 	FROM sells S
 	WHERE S.shop_id = NEW.id;
@@ -143,8 +142,185 @@ FOR EACH ROW
 	EXECUTE FUNCTION trigger4_func();
 
 /* (5) The refund request date must be within 30 days of the delivery date. */
+CREATE OR REPLACE FUNCTION trigger5_func() RETURNS TRIGGER AS $$
+DECLARE 
+     dd DATE;
+BEGIN 
+    SELECT O.delivery_date INTO dd
+    FROM orderline O
+    WHERE O.order_id = NEW.order_id
+    	AND O.shop_id = NEW.shop_id
+    	AND O.product_id = NEW.product_id
+    	AND O.sell_timestamp = NEW.sell_timestamp;
+
+     IF ((NEW.request_date - dd) < 30) THEN 
+          RETURN NEW;
+     ELSE 
+               -- DELETE FROM refund_request WHERE NEW.id = refund_request.id;
+               -- RETURN NULL;
+                RAISE EXCEPTION 'Constraint 5 violated';
+     END IF; 
+
+END; 
+$$ LANGUAGE plpgsql;
+
+CREATE CONSTRAINT TRIGGER trigger5 
+AFTER INSERT ON refund_request
+FOR EACH ROW EXECUTE FUNCTION trigger5_func();
+
+/* (6) Refund request can only be made for a delivered product */
+CREATE OR REPLACE FUNCTION trigger6_func()
+RETURNS TRIGGER AS $$
+DECLARE
+    product_status VARCHAR(50);
+BEGIN
+    SELECT O.status INTO product_status
+    FROM orderline O
+    WHERE O.order_id = NEW.order_id
+    	AND O.shop_id = NEW.shop_id
+    	AND O.product_id = NEW.product_id
+    	AND O.sell_timestamp = NEW.sell_timestamp;
+
+    IF (product_status = 'being_processed' OR product_status = 'shipped') THEN
+        RETURN NULL;
+    ELSE
+        RETURN NEW;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE CONSTRAINT TRIGGER trigger6
+BEFORE INSERT ON refund_request
+FOR EACH ROW
+    EXECUTE FUNCTION trigger6_func();
+
+/* (7) A user can only make a product review for a product that they themselves purchased. */
 
 
+/* (8) A comment is either a review or a reply, not both (non-overlapping and covering) */
+CREATE OR REPLACE FUNCTION trigger8a_func()
+RETURNS TRIGGER AS $$
+BEGIN
+
+    IF (NEW.id IN (SELECT id FROM reply)) THEN
+        RAISE EXCEPTION 'Comment cannot be both a review and a reply!';
+    ELSE
+        RETURN NEW;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION trigger8b_func()
+RETURNS TRIGGER AS $$
+BEGIN
+
+    IF (NEW.id IN (SELECT id FROM review)) THEN
+        RAISE EXCEPTION 'Comment cannot be both a review and a reply!';
+    ELSE
+        RETURN NEW;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION trigger8c_func()
+RETURNS TRIGGER AS $$
+BEGIN
+
+    IF (NEW.id IN (SELECT id FROM review) OR NEW.id IN (SELECT id FROM reply)) THEN
+        RETURN NEW;
+    ELSE
+        RAISE EXCEPTION 'Comment has to be either a review or a reply!';
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE CONSTRAINT TRIGGER trigger8a
+AFTER INSERT ON review
+FOR EACH ROW
+    EXECUTE FUNCTION trigger8a_func();
+
+CREATE CONSTRAINT TRIGGER trigger8b
+AFTER INSERT ON reply
+FOR EACH ROW
+    EXECUTE FUNCTION trigger8b_func();
+
+CREATE CONSTRAINT TRIGGER trigger8c
+AFTER INSERT ON comment
+FOR EACH ROW
+    EXECUTE FUNCTION trigger8c_func();
+
+/* (9) A reply has at least one reply version */
+
+/* (10) A review has at least one review version */
+
+/* (11) A delivery complaint can only be made when the product has been delivered */
+
+/* (12) A complaint is either a delivery-related complaint, a shop-related complaint or a comment-related complaint (non-overlapping and covering) */
+CREATE OR REPLACE FUNCTION trigger12a_func()
+RETURNS TRIGGER AS $$
+BEGIN
+
+    IF (NEW.id IN (SELECT id FROM comment_complaint) OR NEW.id IN (SELECT id FROM delivery_complaint)) THEN
+        RAISE EXCEPTION 'Comment can only be either a delivery-related complaint, a shop-related complaint or a comment-related complaint!';
+    ELSE
+        RETURN NEW;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION trigger12b_func()
+RETURNS TRIGGER AS $$
+BEGIN
+ IF (NEW.id IN (SELECT id FROM shop_complaint) OR NEW.id IN (SELECT id FROM delivery_complaint)) THEN
+        RAISE EXCEPTION 'Comment can only be either a delivery-related complaint, a shop-related complaint or a comment-related complaint!';
+    ELSE
+        RETURN NEW;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION trigger12c_func()
+RETURNS TRIGGER AS $$
+BEGIN
+ IF (NEW.id IN (SELECT id FROM comment_complaint) OR NEW.id IN (SELECT id FROM shop_complaint)) THEN
+        RAISE EXCEPTION 'Comment can only be either a delivery-related complaint, a shop-related complaint or a comment-related complaint!';
+    ELSE
+        RETURN NEW;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION trigger12d_func()
+RETURNS TRIGGER AS $$
+BEGIN
+ IF (NEW.id IN (SELECT id FROM comment_complaint) OR NEW.id IN (SELECT id FROM shop_complaint)
+    OR NEW.id IN (SELECT id FROM delivery_complaint)) THEN
+        RETURN NEW;
+    ELSE
+        RAISE EXCEPTION 'Comment has to be either a delivery-related complaint, a shop-related complaint or a comment-related complaint!';
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE CONSTRAINT TRIGGER trigger12a
+AFTER INSERT ON shop_complaint
+FOR EACH ROW
+    EXECUTE FUNCTION trigger12a_func();
+
+CREATE CONSTRAINT TRIGGER trigger12b
+AFTER INSERT ON comment_complaint
+FOR EACH ROW
+    EXECUTE FUNCTION trigger12b_func();
+
+CREATE CONSTRAINT TRIGGER trigger12c
+AFTER INSERT ON delivery_complaint
+FOR EACH ROW
+    EXECUTE FUNCTION trigger12c_func();
+
+CREATE CONSTRAINT TRIGGER trigger12d
+AFTER INSERT ON complaint
+FOR EACH ROW
+    EXECUTE FUNCTION trigger12d_func();
 /* --- Procedures --------------------------------------------------------------------------- */
 
 
