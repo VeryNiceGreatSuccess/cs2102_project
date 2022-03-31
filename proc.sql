@@ -531,7 +531,7 @@ RETURN QUERY (
 
         SELECT id AS product_id, name AS product_name, rate::NUMERIC(3, 2) AS return_rate
         FROM product_return_rate
-        ORDER BY return_rate DESC
+        ORDER BY return_rate DESC, product_id ASC
         LIMIT n
 
 );
