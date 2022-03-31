@@ -433,7 +433,31 @@ CREATE CONSTRAINT TRIGGER trigger12d
 AFTER INSERT ON complaint
 FOR EACH ROW
     EXECUTE FUNCTION trigger12d_func();
+
 /* --- Procedures --------------------------------------------------------------------------- */
+
+/* (2) */
+CREATE OR REPLACE PROCEDURE review(user_id INTEGER, order_id INTEGER, shop_id INTEGER, product_id INTEGER, sell_timestamp TIMESTAMP, content TEXT, rating INTEGER, comment_timestamp TIMESTAMP)
+AS $$
+BEGIN
+
+END;
+$$ LANGUAGE plpgsql;
 
 
 /* --- Functions ---------------------------------------------------------------------------- */
+
+/* (2) */
+CREATE OR REPLACE FUNCTION get_most_returned_products_from_manufacturer(manufacturer_id INTEGER, n INTEGER)
+RETURNS TABLE(product_id INTEGER, product_name TEXT, return_rate NUMERIC(3, 2)) AS $$
+BEGIN
+
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+
+
+
+
