@@ -279,16 +279,19 @@ $$ LANGUAGE plpgsql;
 
 CREATE CONSTRAINT TRIGGER trigger8a
 AFTER INSERT ON review
+DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
     EXECUTE FUNCTION trigger8a_func();
 
 CREATE CONSTRAINT TRIGGER trigger8b
 AFTER INSERT ON reply
+DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
     EXECUTE FUNCTION trigger8b_func();
 
 CREATE CONSTRAINT TRIGGER trigger8c
 AFTER INSERT ON comment
+DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
     EXECUTE FUNCTION trigger8c_func();
 
@@ -362,8 +365,6 @@ $$ LANGUAGE plpgsql;
 CREATE CONSTRAINT TRIGGER trigger11
 AFTER INSERT ON delivery_complaint
 FOR EACH ROW EXECUTE FUNCTION trigger11_func();
-
-
 
 /* (12) A complaint is either a delivery-related complaint, a shop-related complaint or a comment-related complaint (non-overlapping and covering) */
 CREATE OR REPLACE FUNCTION trigger12a_func()
