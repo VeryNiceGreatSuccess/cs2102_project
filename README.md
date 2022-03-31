@@ -35,7 +35,15 @@ complaint (non-overlapping and covering).
 ![ER Diagram](https://user-images.githubusercontent.com/34131671/159929574-6e9c3b74-abd6-45a4-af14-f069e29dc892.png)
 
 ## Useful
-### To remove all triggers,
+### To remove all data from all tables and all triggers,
+```sql
+DROP SCHEMA public CASCADE;
+CREATE SCHEMA public;
+
+\i schema.sql
+```
+
+### To remove all triggers only,
 ```sql
 CREATE OR REPLACE FUNCTION strip_all_triggers() RETURNS text AS $$ DECLARE
     triggNameRecord RECORD;
@@ -53,12 +61,4 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 select strip_all_triggers();
-```
-
-### To remove all data from all tables,
-```sql
-DROP SCHEMA public CASCADE;
-CREATE SCHEMA public;
-
-\i schema.sql
 ```
