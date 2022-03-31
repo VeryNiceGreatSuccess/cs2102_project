@@ -199,8 +199,6 @@ BEFORE INSERT ON refund_request
 FOR EACH ROW
     EXECUTE FUNCTION trigger6_func();
 
-
-
 /* (7) A user can only make a product review for a product that they themselves purchased. */
 
 CREATE OR REPLACE FUNCTION trigger7_func() RETURNS TRIGGER AS $$ 
@@ -437,13 +435,29 @@ FOR EACH ROW
 /* --- Procedures --------------------------------------------------------------------------- */
 
 /* (2) */
-CREATE OR REPLACE PROCEDURE review(user_id INTEGER, order_id INTEGER, shop_id INTEGER, product_id INTEGER, sell_timestamp TIMESTAMP, content TEXT, rating INTEGER, comment_timestamp TIMESTAMP)
+CREATE OR REPLACE PROCEDURE review(user_id INTEGER, order_id INTEGER,
+    shop_id INTEGER, product_id INTEGER, sell_timestamp TIMESTAMP,
+    content TEXT, rating INTEGER, comment_timestamp TIMESTAMP)
 AS $$
+DECLARE
+    comment_id INTEGER;
 BEGIN
+    
+    /* first, create a parent-entry in the "comments" relation; note that this entry will have id = next_comment_id */    
+    INSERT INTO comment VALUES
+        (DEFAULT, user_id)
+    RETURNING id INTO comment_id; /* get the id that was auto-assigned to the the comment just inserted */
+
+    /* then, create a child-entry in the "reviews" relation */
+    INSERT INTO review VALUES
+        (comment_id, order_id, shop_id, product_id, sell_timestamp);
+
+    /* then, create an entry in the "review_version" relation */
+    INSERT INTO review_version VALUES
+        (comment_id, comment_timestamp, content, rating);
 
 END;
 $$ LANGUAGE plpgsql;
-
 
 /* --- Functions ---------------------------------------------------------------------------- */
 

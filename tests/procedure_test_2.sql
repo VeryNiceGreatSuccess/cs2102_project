@@ -2,7 +2,6 @@
 /* Creates a review by the given user for the particular ordered product */
 
 /* --------------------------------------- insert some data first ----*/
-
 BEGIN;
 	INSERT INTO shop VALUES
 		(1, 'Takashimaya');
@@ -24,6 +23,36 @@ BEGIN;
 COMMIT;
 
 BEGIN;
+	/* --- PROCEDURE METHOD ---
+		review(user_id INTEGER, order_id INTEGER,
+    		shop_id INTEGER, product_id INTEGER, sell_timestamp TIMESTAMP,
+    		content TEXT, rating INTEGER, comment_timestamp TIMESTAMP)
+	*/	
+	CALL review(1, 1, 1, 1, '2016-06-22', 'damn gud 10 outta 10', 5, '2016-06-25');
 	
-
 COMMIT;
+
+/* verify that insertion was SUCCESSFUL */
+DO $$
+DECLARE
+	num_comments INTEGER := 0;
+	num_reviews INTEGER := 0;
+	num_review_versions INTEGER := 0;
+BEGIN
+	
+	SELECT COUNT(*) INTO num_comments
+	FROM comment;
+
+	SELECT COUNT(*) INTO num_reviews
+	FROM review;
+
+	SELECT COUNT(*) INTO num_review_versions
+	FROM review_version;	
+
+	IF ((num_comments = 1) AND (num_reviews = 1) AND (num_review_versions = 1)) THEN
+		RAISE NOTICE 'review successfully inserted into all 3 tables! - OK';
+	ELSE
+		RAISE WARNING 'review not successfully inserted - WRONG';
+	END IF;
+
+END $$;
