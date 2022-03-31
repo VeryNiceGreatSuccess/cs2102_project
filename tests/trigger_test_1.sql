@@ -1,6 +1,6 @@
 /* (1) Each shop should sell at least one product. */
 
-/* --------------------------------------- insert VALID data ✅  ----*/
+/* --------------------------------------- insert VALID data ----*/
 
 BEGIN;
 	INSERT INTO shop VALUES
@@ -25,9 +25,9 @@ BEGIN
 	FROM shop;
 
 	IF (num_shops = 1) THEN
-		RAISE NOTICE 'shop successfully inserted! ✅';
+		RAISE NOTICE 'shop successfully inserted! - OK';
 	ELSE
-		RAISE WARNING 'shop should have been successfully inserted ❌';
+		RAISE WARNING 'shop should have been successfully inserted - WRONG';
 	END IF;
 
 END $$;
@@ -39,7 +39,7 @@ DELETE FROM manufacturer;
 DELETE FROM category;
 DELETE FROM shop;
 
-/* ------------------------------ insert INVALID data ❌ -------- */
+/* ------------------------------ insert INVALID data -------- */
 BEGIN;
 	INSERT INTO shop VALUES
 		(1, 'Takashimaya');
@@ -64,15 +64,15 @@ BEGIN
 	FROM shop_complaint;
 
 	IF (num_shops = 0) THEN
-		RAISE NOTICE 'shop was not inserted! ✅';
+		RAISE NOTICE 'shop was not inserted! - OK';
 	ELSE
-		RAISE WARNING 'shop should not have been inserted ❌';
+		RAISE WARNING 'shop should not have been inserted - WRONG';
 	END IF;
 
 	IF (num_complaints = 0) THEN
-		RAISE NOTICE 'complaints related to the shop were also not inserted! ✅';
+		RAISE NOTICE 'complaints related to the shop were also not inserted! - OK';
 	ELSE
-		RAISE WARNING 'complaints related to the shop should not have been inserted since the shop technically does not exist ❌';
+		RAISE WARNING 'complaints related to the shop should not have been inserted since the shop technically does not exist - WRONG';
 	END IF;
 END $$;
 

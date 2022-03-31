@@ -1,6 +1,6 @@
 /* (2) An order must involve one or more products from one or more shops. */
 
-/* --------------------------------------- insert VALID data ✅  ----*/
+/* --------------------------------------- insert VALID data ----*/
 
 BEGIN;
 	INSERT INTO shop VALUES
@@ -34,9 +34,9 @@ BEGIN
 	FROM orders;
 
 	IF (num_orders = 1) THEN
-		RAISE NOTICE 'order was inserted ✅';
+		RAISE NOTICE 'order was inserted - OK';
 	ELSE
-		RAISE WARNING 'order was not inserted when it should have been ❌';
+		RAISE WARNING 'order was not inserted when it should have been - WRONG';
 	END IF;	
 END $$;
 
@@ -44,13 +44,13 @@ END $$;
 DELETE FROM orderline;
 DELETE FROM orders;
 
-/* ------------------------------ insert INVALID data ❌ -------- */
+/* ------------------------------ insert INVALID data -------- */
 
 BEGIN;
 	INSERT INTO orders VALUES
 		(1, 1, NULL, 'clementi, singapore', 55);
 
-	/* ❌ order inserted has no associate orderline entry */
+	/* order inserted has no associate orderline entry */
 COMMIT;
 
 /* verify that insertion was PREVENTED */
@@ -63,9 +63,9 @@ BEGIN
 	FROM orders;
 
 	IF (num_orders = 0) THEN
-		RAISE NOTICE 'order was not inserted ✅';
+		RAISE NOTICE 'order was not inserted - OK';
 	ELSE
-		RAISE WARNING 'order was inserted when it should not have been ❌';
+		RAISE WARNING 'order was inserted when it should not have been - WRONG';
 	END IF;	
 END $$;
 

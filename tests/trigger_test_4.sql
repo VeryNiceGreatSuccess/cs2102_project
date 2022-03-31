@@ -1,6 +1,6 @@
 /* (4) The refund quantity must not exceed the ordered quantity. */
 
-/* --------------------------------------- insert VALID data ✅  ----*/
+/* --------------------------------------- insert VALID data ----*/
 
 BEGIN;
 	INSERT INTO shop VALUES
@@ -37,9 +37,9 @@ BEGIN
 	FROM refund_request;
 
 	IF (num_refunds = 1) THEN
-		RAISE NOTICE 'refund request was inserted ✅';
+		RAISE NOTICE 'refund request was inserted - OK';
 	ELSE
-		RAISE WARNING 'refund request was not inserted when it should have been ❌';
+		RAISE WARNING 'refund request was not inserted when it should have been - WRONG';
 	END IF;
 END $$;
 
@@ -49,7 +49,7 @@ DELETE FROM orderline;
 DELETE FROM orders;
 DELETE FROM sells;
 
-/* ------------------------------ insert INVALID data ❌ -------- */
+/* ------------------------------ insert INVALID data -------- */
 
 BEGIN;
 	INSERT INTO sells VALUES
@@ -59,7 +59,7 @@ BEGIN;
 	INSERT INTO orderline VALUES
 		(1, 1, 1, '2016-06-22', 3, 9.99, 'being_processed', NULL);	
 
-	/* ❌ customer tries to make a refund for quantity of 2+3=5 when only placed order for 3 */
+	/* customer tries to make a refund for quantity of 2+3=5 when only placed order for 3 */
 	INSERT INTO refund_request VALUES
 		(1, NULL, 1, 1, 1, '2016-06-22', 2, '2016-06-27', 'pending', NULL, NULL),
 		(2, NULL, 1, 1, 1, '2016-06-22', 3, '2016-06-27', 'pending', NULL, NULL);
@@ -76,9 +76,9 @@ BEGIN
 	FROM refund_request;
 
 	IF (num_refunds = 0) THEN
-		RAISE NOTICE 'refund request(s) were NOT inserted ✅';
+		RAISE NOTICE 'refund request(s) were NOT inserted - OK';
 	ELSE
-		RAISE WARNING 'refund request(s) were inserted when they should not have been ❌';
+		RAISE WARNING 'refund request(s) were inserted when they should not have been - WRONG';
 	END IF;
 
 END $$;

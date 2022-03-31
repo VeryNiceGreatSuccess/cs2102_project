@@ -1,7 +1,7 @@
 /* (3) A coupon can only be used on an order whose total amount (before the coupon is applied) exceeds
 the minimum order amount. */
 
-/* --------------------------------------- insert VALID data ✅  ----*/
+/* --------------------------------------- insert VALID data ----*/
 
 BEGIN;
 	INSERT INTO shop VALUES
@@ -42,9 +42,9 @@ BEGIN
 	FROM orders;
 
 	IF (num_orders = 1) THEN
-		RAISE NOTICE 'order was inserted ✅';
+		RAISE NOTICE 'order was inserted - OK';
 	ELSE
-		RAISE WARNING 'order was not inserted when it should have been ❌';
+		RAISE WARNING 'order was not inserted when it should have been - WRONG';
 	END IF;
 END $$;
 
@@ -54,7 +54,7 @@ DELETE FROM orders;
 DELETE FROM issued_coupon;
 DELETE FROM coupon_batch;
 
-/* ------------------------------ insert INVALID data ❌ -------- */
+/* ------------------------------ insert INVALID data -------- */
 
 BEGIN;
 	INSERT INTO coupon_batch VALUES
@@ -65,7 +65,7 @@ BEGIN;
 		(1, 1, 1, 'clementi, singapore', 59.99);		
 	INSERT INTO orderline VALUES
 		(1, 1, 1, '2016-06-22', 1, 59.99, 'being_processed', NULL);
-		/* ❌ total value of this order is 59.99, which is less than the minimum order amount of 65 */
+		/* total value of this order is 59.99, which is less than the minimum order amount of 65 */
 COMMIT;
 
 /* verify that insertion was PREVENTED */
@@ -78,9 +78,9 @@ BEGIN
 	FROM orders;
 
 	IF (num_orders = 0) THEN
-		RAISE NOTICE 'order was not inserted ✅';
+		RAISE NOTICE 'order was not inserted - OK';
 	ELSE
-		RAISE WARNING 'order was inserted when it should not have been ❌';
+		RAISE WARNING 'order was inserted when it should not have been - WRONG';
 	END IF;
 END $$;
 
