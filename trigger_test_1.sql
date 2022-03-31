@@ -1,5 +1,12 @@
 /* (1) Each shop should sell at least one product. */
 
+/* --------------------------------------- clear data and reset triggers ----*/
+
+DROP SCHEMA public CASCADE;
+CREATE SCHEMA public;
+\i schema.sql;
+\i proc.sql;
+
 /* --------------------------------------- insert VALID data ----*/
 
 BEGIN;

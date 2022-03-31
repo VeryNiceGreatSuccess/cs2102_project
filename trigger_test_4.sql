@@ -1,5 +1,12 @@
 /* (4) The refund quantity must not exceed the ordered quantity. */
 
+/* --------------------------------------- clear data and reset triggers ----*/
+
+DROP SCHEMA public CASCADE;
+CREATE SCHEMA public;
+\i schema.sql;
+\i proc.sql;
+
 /* --------------------------------------- insert VALID data ----*/
 
 BEGIN;

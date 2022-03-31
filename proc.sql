@@ -458,8 +458,6 @@ BEGIN
         R.sell_timestamp = _sell_timestamp;
 
     IF (comment_id IS NULL) THEN
-        RAISE NOTICE '💥';
-
         /* create a parent-entry in the "comments" relation; note that this entry will have id = next_comment_id */    
         INSERT INTO comment VALUES
             (DEFAULT, _user_id)

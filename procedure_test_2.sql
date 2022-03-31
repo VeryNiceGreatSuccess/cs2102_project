@@ -1,7 +1,15 @@
 /* review(...) */
 /* Creates a review by the given user for the particular ordered product */
 
-/* --------------------------------------- insert some data first ----*/
+/* --------------------------------------- clear data and reset triggers ----*/
+
+DROP SCHEMA public CASCADE;
+CREATE SCHEMA public;
+\i schema.sql;
+\i proc.sql;
+
+/* --------------------------------------- insert some data ----*/
+
 BEGIN;
 	INSERT INTO shop VALUES
 		(1, 'Takashimaya');

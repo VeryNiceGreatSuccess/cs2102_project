@@ -1,5 +1,12 @@
 /* (2) An order must involve one or more products from one or more shops. */
 
+/* --------------------------------------- clear data and reset triggers ----*/
+
+DROP SCHEMA public CASCADE;
+CREATE SCHEMA public;
+\i schema.sql;
+\i proc.sql;
+
 /* --------------------------------------- insert VALID data ----*/
 
 BEGIN;

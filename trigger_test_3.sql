@@ -1,6 +1,13 @@
 /* (3) A coupon can only be used on an order whose total amount (before the coupon is applied) exceeds
 the minimum order amount. */
 
+/* --------------------------------------- clear data and reset triggers ----*/
+
+DROP SCHEMA public CASCADE;
+CREATE SCHEMA public;
+\i schema.sql;
+\i proc.sql;
+
 /* --------------------------------------- insert VALID data ----*/
 
 BEGIN;
