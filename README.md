@@ -54,3 +54,11 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 select strip_all_triggers();
 ```
+
+### To remove all data from all tables,
+```sql
+DROP SCHEMA public CASCADE;
+CREATE SCHEMA public;
+
+\i schema.sql
+```
