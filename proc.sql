@@ -495,13 +495,17 @@ RETURN QUERY (
             SELECT id, name
             FROM product
             WHERE manufacturer = manufacturer_id
-        ),
+        ),        
         /* find total quantity of each product successfully delivered */
-        num_sold AS (
-            SELECT A.id, A.name, COALESCE(SUM(O.quantity), 0) as quantity_delivered
-            FROM all_products A LEFT JOIN orderline O ON
-                A.id = O.product_id
+        delivered_orders AS (
+            SELECT O.product_id, O.quantity
+            FROM orderline O
             WHERE O.status = 'delivered'
+        ),
+        num_delivered AS (
+            SELECT A.id, A.name, COALESCE(SUM(O.quantity), 0) as quantity_delivered
+            FROM all_products A LEFT JOIN delivered_orders O ON
+                A.id = O.product_id
             GROUP BY A.id, A.name
         ),
         /* find total number of each product successfully refunded */
@@ -518,11 +522,11 @@ RETURN QUERY (
         ),
         /* calculate return rate of each product sold by the manufacturer */
         product_return_rate AS (
-            SELECT S.id, S.name,
-                (R.quantity_returned::NUMERIC / S.quantity_delivered::NUMERIC) AS rate
-            FROM num_sold S JOIN num_returned R ON
-                S.id = R.id AND
-                S.name = R.name
+            SELECT D.id, D.name,
+                (R.quantity_returned::NUMERIC / D.quantity_delivered::NUMERIC) AS rate
+            FROM num_delivered D JOIN num_returned R ON
+                D.id = R.id AND
+                D.name = R.name
         )
 
         SELECT id AS product_id, name AS product_name, rate::NUMERIC(3, 2) AS return_rate
