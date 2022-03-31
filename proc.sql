@@ -144,8 +144,6 @@ DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
 	EXECUTE FUNCTION trigger4_func();
 
-
-
 /* (5) The refund request date must be within 30 days of the delivery date. */
 
 CREATE OR REPLACE FUNCTION trigger5_func() RETURNS TRIGGER AS $$
@@ -187,15 +185,15 @@ BEGIN
     AND O.sell_timestamp = NEW.sell_timestamp;
 
     IF (product_status = 'being_processed' OR product_status = 'shipped') THEN
-        RETURN NULL;
-    ELSE
-        RETURN NEW;
+        RAISE EXCEPTION 'Constraint 6 violated';
     END IF;
+    
+    RETURN NULL;    
 END;
 $$ LANGUAGE plpgsql;
 
 CREATE CONSTRAINT TRIGGER trigger6
-BEFORE INSERT ON refund_request
+AFTER INSERT ON refund_request
 FOR EACH ROW
     EXECUTE FUNCTION trigger6_func();
 
@@ -482,10 +480,57 @@ $$ LANGUAGE plpgsql;
 /* --- Functions ---------------------------------------------------------------------------- */
 
 /* (2) */
-CREATE OR REPLACE FUNCTION get_most_returned_products_from_manufacturer(manufacturer_id INTEGER, n INTEGER)
+
+CREATE OR REPLACE FUNCTION get_most_returned_products_from_manufacturer
+    (manufacturer_id INTEGER, n INTEGER)
 RETURNS TABLE(product_id INTEGER, product_name TEXT, return_rate NUMERIC(3, 2)) AS $$
+
 BEGIN
 
+RETURN QUERY (
+
+    WITH
+        /* find all products sold by the manufacturer */
+        all_products AS (
+            SELECT id, name
+            FROM product
+            WHERE manufacturer = manufacturer_id
+        ),
+        /* find total quantity of each product successfully delivered */
+        num_sold AS (
+            SELECT A.id, A.name, COALESCE(SUM(O.quantity), 0) as quantity_sold
+            FROM all_products A LEFT JOIN orderline O ON
+                A.id = O.product_id
+            WHERE O.status = 'delivered'
+            GROUP BY A.id, A.name
+        ),
+        /* find total number of each product successfully refunded */
+        accepted_refunds AS (
+            SELECT R.product_id, R.quantity
+            FROM refund_request R
+            WHERE R.status = 'accepted'
+        ),
+        num_returned AS (
+            SELECT A.id, A.name, COALESCE(SUM(R.quantity), 0) as quantity_refunded
+            FROM all_products A LEFT JOIN accepted_refunds R                
+                ON A.id = R.product_id
+            GROUP BY A.id, A.name
+        ),
+        /* calculate return rate of each product sold by the manufacturer */
+        product_return_rate AS (
+            SELECT S.id, S.name,
+                (R.quantity_refunded::NUMERIC / S.quantity_sold::NUMERIC) AS rate
+            FROM num_sold S JOIN num_returned R ON
+                S.id = R.id AND
+                S.name = R.name
+        )
+
+        SELECT id AS product_id, name AS product_name, rate::NUMERIC(3, 2) AS return_rate
+        FROM product_return_rate
+        ORDER BY return_rate DESC
+        LIMIT n
+
+);
 END;
 $$ LANGUAGE plpgsql;
 
