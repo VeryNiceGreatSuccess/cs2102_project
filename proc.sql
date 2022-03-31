@@ -295,8 +295,6 @@ DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
     EXECUTE FUNCTION trigger8c_func();
 
-
-
 /* (9) A reply has at least one reply version */
 
 CREATE OR REPLACE FUNCTION trigger9_func() RETURNS
@@ -436,26 +434,49 @@ FOR EACH ROW
 /* --- Procedures --------------------------------------------------------------------------- */
 
 /* (2) */
-CREATE OR REPLACE PROCEDURE review(user_id INTEGER, order_id INTEGER,
-    shop_id INTEGER, product_id INTEGER, sell_timestamp TIMESTAMP,
-    content TEXT, rating INTEGER, comment_timestamp TIMESTAMP)
+
+/* NOTE:
+    the names of the input parameters have been changed -> they are prefixed with an underscore "_"
+
+   WHY:
+    because the attribute names in the "review" relations were identical to the original names of the input paramters,
+    which will cause ambiguity
+*/
+CREATE OR REPLACE PROCEDURE review(_user_id INTEGER, _order_id INTEGER,
+    _shop_id INTEGER, _product_id INTEGER, _sell_timestamp TIMESTAMP,
+    _content TEXT, _rating INTEGER, _comment_timestamp TIMESTAMP)
 AS $$
 DECLARE
-    comment_id INTEGER;
+    comment_id INTEGER;    
 BEGIN
-    
-    /* first, create a parent-entry in the "comments" relation; note that this entry will have id = next_comment_id */    
-    INSERT INTO comment VALUES
-        (DEFAULT, user_id)
-    RETURNING id INTO comment_id; /* get the id that was auto-assigned to the the comment just inserted */
+    /* check if a previous version of this review exists, */
+    SELECT id INTO comment_id
+    FROM review R
+    WHERE R.order_id = _order_id AND
+        R.shop_id = _shop_id AND
+        R.product_id = _product_id AND
+        R.sell_timestamp = _sell_timestamp;
 
-    /* then, create a child-entry in the "reviews" relation */
-    INSERT INTO review VALUES
-        (comment_id, order_id, shop_id, product_id, sell_timestamp);
+    IF (comment_id IS NULL) THEN
+        RAISE NOTICE '💥';
 
-    /* then, create an entry in the "review_version" relation */
-    INSERT INTO review_version VALUES
-        (comment_id, comment_timestamp, content, rating);
+        /* create a parent-entry in the "comments" relation; note that this entry will have id = next_comment_id */    
+        INSERT INTO comment VALUES
+            (DEFAULT, _user_id)
+        RETURNING id INTO comment_id; /* get the id that was auto-assigned to the the comment just inserted */
+
+        /* then, create a child-entry in the "reviews" relation */
+        INSERT INTO review VALUES
+            (comment_id, _order_id, _shop_id, _product_id, _sell_timestamp);
+
+        /* then, create an entry in the "review_version" relation */
+        INSERT INTO review_version VALUES
+            (comment_id, _comment_timestamp, _content, _rating);
+    ELSE
+        /* insert another entry in the "review_version" relation to reflect the updated version */
+        INSERT INTO review_version VALUES
+            (comment_id, _comment_timestamp, _content, _rating);
+    END IF;
 
 END;
 $$ LANGUAGE plpgsql;
