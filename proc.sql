@@ -477,6 +477,49 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+/* (3) */
+
+/* NOTE:
+    the names of the input parameters have been changed -> they are prefixed with an underscore "_"
+
+   WHY:
+    because the attribute names in the "reply" relations were identical to the original names of the input paramters,
+    which will cause ambiguity
+*/
+
+CREATE OR REPLACE PROCEDURE reply(_user_id INTEGER, _other_comment_id INTEGER, _content TEXT, _reply_timestamp TIMESTAMP)
+AS $$
+
+DECLARE 
+    does_other_comment_exist INTEGER;
+    comment_id INTEGER;
+
+BEGIN 
+    /* check if the comment that the user is replying to exists */
+    SELECT count(*) INTO does_other_comment_exist
+    FROM comment C
+    WHERE C.id = _other_comment_id; /* get the id that was auto-assigned to the the comment just inserted */
+
+    IF (does_other_comment_exist = 0) THEN
+        RAISE EXCEPTION 'Other comment does not exist!';
+    ELSE 
+        /* create a parent-entry in the "comments" relation; note that this entry will have id = next_comment_id */
+        INSERT INTO comment VALUES (DEFAULT, _user_id)
+        RETURNING id INTO comment_id; 
+
+        /* then, create a child-entry in the "reply" relation */
+        INSERT INTO reply VALUES (comment_id, _other_comment_id);
+
+        /* then, create an entry in the "reply_version" relation */
+        INSERT INTO reply_version VALUES (comment_id, _reply_timestamp, _content);
+
+    END IF; 
+
+END;
+$$ LANGUAGE plpgsql;
+
+
 /* --- Functions ---------------------------------------------------------------------------- */
 
 /* (2) */
