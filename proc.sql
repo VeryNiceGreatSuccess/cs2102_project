@@ -595,6 +595,77 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+/* (3) */ 
+CREATE OR REPLACE FUNCTION get_worst_shops(n INTEGER) RETURNS
+TABLE (shop_id INTEGER, shop_name TEXT, num_negative_indicators INTEGER) AS $$
+
+BEGIN 
+
+RETURN QUERY (
+    WITH 
+
+        /* filtering out multiple refund requests made on the same orderline */
+        no_of_refund_requests AS (
+            SELECT DISTINCT order_id, shop_id, product_id, sell_timestamp
+            FROM refund_request
+            GROUP BY order_id, shop_id, product_id, sell_timestamp
+        ), 
+
+        /* filtering out multiple delivery requests made on the same orderline */
+        no_of_delivery_complaints AS (
+            SELECT DISTINCT order_id, shop_id, product_id, sell_timestamp
+            FROM delivery_complaint
+            GROUP BY order_id, shop_id, product_id, sell_timestamp
+        ),
+
+        /* get latest review version for each review */
+        latest_review_versions AS (
+            SELECT DISTINCT review_id, rating
+            FROM review_version RV_1
+            WHERE RV_1.review_timestamp >= all (
+                SELECT review_timestamp
+                FROM review_version RV_2
+                WHERE RV_1.review_id = RV_2.review_id
+            )
+        ),
+
+        /* join each latest 1-star review version with its corresponding shop */
+        latest_review_version_to_shop AS (
+            SELECT DISTINCT shop_id, review_id, rating
+            FROM latest_review_versions RV inner join review R
+            ON RV.review_id = R.id
+            WHERE RV.rating = 1
+        ),
+
+        /* number of negative indicators per shop */
+        negative_indicators_per_shop AS (
+            SELECT DISTINCT S.id, 
+
+                /*scalar query to get number of refund requests per shop */
+                ((SELECT COUNT(*) WHERE no_of_refund_requests.shop_id = S.id) + 
+
+                /* scalar query to get number of shop complaints per shop */
+                (SELECT COUNT(*) WHERE shop_complaint.shop_id = S.id) + 
+
+                /* scalar query to get number of delivery complaints per shop */
+                (SELECT COUNT(*) WHERE no_of_delivery_complaints.shop_id = S.id) + 
+
+                /* scalar query to get number of 1-star reviews per shop */
+                (SELECT COUNT(*) WHERE latest_review_version_to_shop.shop_id = S.id))
+
+                AS num_negative_indicators_per_shop
+
+            FROM shops    
+
+        )
+
+        SELECT S.id AS shop_id, S.name AS shop_name, N.num_negative_indicators_per_shop AS num_negative_indicators
+        FROM shop S natural join negative_indicators_per_shop N
+        ORDER BY num_negative_indicators DESC, shop_id ASC
+        LIMIT n
+);
+END;
+$$ LANGUAGE plpgsql;
 
 
 
