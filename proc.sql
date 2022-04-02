@@ -501,8 +501,21 @@ BEGIN
     FROM comment C
     WHERE C.id = _other_comment_id; /* get the id that was auto-assigned to the the comment just inserted */
 
+    /* check if a version of the reply already exists */
+    SELECT id into comment_id
+    FROM reply R
+    WHERE R.id = _user_id AND R.other_comment_id = _other_comment_id;
+
+    /* raise exception if other comment does not exist */
     IF (does_other_comment_exist = 0) THEN
         RAISE EXCEPTION 'Other comment does not exist!';
+    END IF;
+
+    /* if there is already a reply to be updated */
+    IF (comment_id IS NOT NULL) THEN 
+        /* then, create an entry in the "reply_version" relation */
+        INSERT INTO reply_version VALUES (comment_id, _reply_timestamp, _content);
+
     ELSE 
         /* create a parent-entry in the "comments" relation; note that this entry will have id = next_comment_id */
         INSERT INTO comment VALUES (DEFAULT, _user_id)
