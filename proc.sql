@@ -328,10 +328,6 @@ CREATE OR REPLACE FUNCTION trigger10_func() RETURNS
 TRIGGER AS $$ 
 BEGIN        
 
-RAISE NOTICE 'sian %', (SELECT COUNT(*)
-      FROM review_version
-      WHERE review_version.review_id = NEW.id)  ;
-
 IF ((SELECT COUNT(*)
       FROM review_version
       WHERE review_version.review_id = NEW.id) < 1) THEN
