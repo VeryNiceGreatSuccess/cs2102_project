@@ -157,6 +157,9 @@ BEGIN
 
      IF ((NEW.request_date - dd) < 30) THEN 
           RETURN NEW;
+
+     ELSEIF ((NEW.request_date IS NULL)) THEN 
+          RETURN NEW;  /* request_date can be null */ 
      ELSE 
          RAISE EXCEPTION 'Constraint 5 violated';
      END IF; 
@@ -166,6 +169,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE CONSTRAINT TRIGGER trigger5 
 AFTER INSERT ON refund_request
+DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION trigger5_func();
 
 
@@ -194,6 +198,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE CONSTRAINT TRIGGER trigger6
 AFTER INSERT ON refund_request
+DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
     EXECUTE FUNCTION trigger6_func();
 
@@ -221,7 +226,7 @@ BEGIN
 
      IF ((SELECT orders.user_id FROM orders
      WHERE orders.id = order_id
-     GROUP BY orders.user_id) = user_id) THEN 
+     LIMIT 1) = user_id) THEN 
           RETURN NEW;
 
       ELSE 
@@ -233,6 +238,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE CONSTRAINT TRIGGER  trigger7
 AFTER INSERT ON review
+DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION trigger7_func();
 
 
@@ -311,6 +317,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE CONSTRAINT TRIGGER trigger9
 AFTER INSERT ON reply 
+DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION trigger9_func(); 
 
 
@@ -320,9 +327,14 @@ FOR EACH ROW EXECUTE FUNCTION trigger9_func();
 CREATE OR REPLACE FUNCTION trigger10_func() RETURNS
 TRIGGER AS $$ 
 BEGIN        
+
+RAISE NOTICE 'sian %', (SELECT COUNT(*)
+      FROM review_version
+      WHERE review_version.review_id = NEW.id)  ;
+
 IF ((SELECT COUNT(*)
       FROM review_version
-      WHERE review_version.review_id = NEW.i) < 1) THEN
+      WHERE review_version.review_id = NEW.id) < 1) THEN
       RAISE EXCEPTION 'Constraint 10 is violated';
 ELSE
       RETURN NEW;
@@ -332,7 +344,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE CONSTRAINT TRIGGER trigger10
-AFTER INSERT ON reply 
+AFTER INSERT ON review
+DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION trigger10_func();  
 
 
@@ -343,7 +356,7 @@ CREATE OR REPLACE FUNCTION trigger11_func() RETURNS TRIGGER AS $$
 DECLARE 
       status VARCHAR(20);
 BEGIN
-       SELECT orderline.orderline_status INTO status
+       SELECT orderline.status INTO status
        FROM orderline
        WHERE orderline.order_id = NEW.order_id 
             AND orderline.shop_id = NEW.shop_id 
@@ -360,6 +373,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE CONSTRAINT TRIGGER trigger11
 AFTER INSERT ON delivery_complaint
+DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION trigger11_func();
 
 /* (12) A complaint is either a delivery-related complaint, a shop-related complaint or a comment-related complaint (non-overlapping and covering) */
@@ -411,21 +425,25 @@ $$ LANGUAGE plpgsql;
 
 CREATE CONSTRAINT TRIGGER trigger12a
 AFTER INSERT ON shop_complaint
+DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
     EXECUTE FUNCTION trigger12a_func();
 
 CREATE CONSTRAINT TRIGGER trigger12b
 AFTER INSERT ON comment_complaint
+DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
     EXECUTE FUNCTION trigger12b_func();
 
 CREATE CONSTRAINT TRIGGER trigger12c
 AFTER INSERT ON delivery_complaint
+DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
     EXECUTE FUNCTION trigger12c_func();
 
 CREATE CONSTRAINT TRIGGER trigger12d
 AFTER INSERT ON complaint
+DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW
     EXECUTE FUNCTION trigger12d_func();
 
@@ -606,16 +624,16 @@ RETURN QUERY (
 
         /* filtering out multiple refund requests made on the same orderline */
         no_of_refund_requests AS (
-            SELECT DISTINCT order_id, shop_id, product_id, sell_timestamp
-            FROM refund_request
-            GROUP BY order_id, shop_id, product_id, sell_timestamp
+            SELECT DISTINCT R.order_id, R.shop_id, R.product_id, R.sell_timestamp
+            FROM refund_request R
+            GROUP BY R.order_id, R.shop_id, R.product_id, R.sell_timestamp
         ), 
 
         /* filtering out multiple delivery requests made on the same orderline */
         no_of_delivery_complaints AS (
-            SELECT DISTINCT order_id, shop_id, product_id, sell_timestamp
-            FROM delivery_complaint
-            GROUP BY order_id, shop_id, product_id, sell_timestamp
+            SELECT DISTINCT D.order_id, D.shop_id, D.product_id, D.sell_timestamp
+            FROM delivery_complaint D
+            GROUP BY D.order_id, D.shop_id, D.product_id, D.sell_timestamp
         ),
 
         /* get latest review version for each review */
@@ -631,7 +649,7 @@ RETURN QUERY (
 
         /* join each latest 1-star review version with its corresponding shop */
         latest_review_version_to_shop AS (
-            SELECT DISTINCT shop_id, review_id, rating
+            SELECT DISTINCT R.shop_id, RV.review_id, RV.rating
             FROM latest_review_versions RV inner join review R
             ON RV.review_id = R.id
             WHERE RV.rating = 1
@@ -642,25 +660,25 @@ RETURN QUERY (
             SELECT DISTINCT S.id, 
 
                 /*scalar query to get number of refund requests per shop */
-                ((SELECT COUNT(*) WHERE no_of_refund_requests.shop_id = S.id) + 
+                ((SELECT COUNT(*) FROM no_of_refund_requests R WHERE R.shop_id = S.id) + 
 
                 /* scalar query to get number of shop complaints per shop */
-                (SELECT COUNT(*) WHERE shop_complaint.shop_id = S.id) + 
+                (SELECT COUNT(*) FROM shop_complaint SC WHERE SC.shop_id = S.id) + 
 
                 /* scalar query to get number of delivery complaints per shop */
-                (SELECT COUNT(*) WHERE no_of_delivery_complaints.shop_id = S.id) + 
+                (SELECT COUNT(*) FROM no_of_delivery_complaints DC WHERE DC.shop_id = S.id) + 
 
                 /* scalar query to get number of 1-star reviews per shop */
-                (SELECT COUNT(*) WHERE latest_review_version_to_shop.shop_id = S.id))
+                (SELECT COUNT(*) FROM latest_review_version_to_shop RV WHERE RV.shop_id = S.id)) :: INTEGER
 
                 AS num_negative_indicators_per_shop
 
-            FROM shops    
+            FROM shop S   
 
         )
 
-        SELECT S.id AS shop_id, S.name AS shop_name, N.num_negative_indicators_per_shop AS num_negative_indicators
-        FROM shop S natural join negative_indicators_per_shop N
+        SELECT S.id AS shop_id, S.name AS shop_name, NI.num_negative_indicators_per_shop AS num_negative_indicators
+        FROM shop S natural join negative_indicators_per_shop NI
         ORDER BY num_negative_indicators DESC, shop_id ASC
         LIMIT n
 );

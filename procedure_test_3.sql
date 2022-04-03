@@ -46,7 +46,7 @@ BEGIN;
         (2, 2, 3, '2021-05-05 00:00:00', 5, 5.50, 'being_processed', NULL);    
 
     INSERT INTO comment VALUES 
-        (DEFAULT, 1);
+        (DEFAULT, 2);
     
     INSERT INTO review VALUES
         (1, 1, 1, 1, '2011-01-01 00:00:00');
@@ -64,7 +64,6 @@ BEGIN;
        reply( user_id INTEGER, other_comment_id INTEGER, content TEXT, reply_timestamp TIMESTAMP)
     */
     CALL reply(2, 1, 'No I disagree and would not buy it again.', '2011-01-07 00:00:00');
-
 
 COMMIT;
 
