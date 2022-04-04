@@ -443,6 +443,59 @@ FOR EACH ROW
 
 /* --- Procedures --------------------------------------------------------------------------- */
 
+/* (1) */
+CREATE OR REPLACE PROCEDURE place_order(_user_id INTEGER, _coupon_id INTEGER, _shipping_address TEXT, _shop_ids INTEGER[], _product_ids INTEGER[], _sell_timestamps TIMESTAMP[], _quantities INTEGER[], _shipping_costs NUMERIC[])
+AS $$
+DECLARE
+    _order_id INTEGER;
+    total_payment_amount INTEGER := 0;
+    ptr INTEGER := 1;
+    curr_price INTEGER := 0;
+    coupon_reward INTEGER;
+BEGIN
+    /* assuming all the arrays are the same size, loop through the arrays and add up the price * quantity of each product sold */
+    WHILE ptr <= CARDINALITY(_shop_ids) LOOP 
+        SELECT s.price INTO curr_price
+        FROM sells s
+        WHERE _shop_ids[ptr] = s.shop_id
+        AND _product_ids[ptr] = s.product_id
+        AND _sell_timestamps[ptr] = s.sell_timestamp;
+
+        curr_price := curr_price * _quantities[ptr];
+        total_payment_amount := total_payment_amount + curr_price + _shipping_costs[ptr];
+        ptr := ptr + 1;
+    END LOOP;
+    ptr := 1;
+    /* deduct discount from total price */
+    IF (_coupon_id IS NOT NULL) THEN
+        SELECT cb.reward_amount INTO coupon_reward
+        FROM coupon_batch cb
+        WHERE _coupon_id = cb.id;
+
+        total_payment_amount := total_payment_amount - coupon_reward;
+    END IF;
+
+    /* inserting into orders table */
+    INSERT INTO orders VALUES
+    (DEFAULT, _user_id, _coupon_id, _shipping_address, total_payment_amount)
+    RETURNING id INTO _order_id;
+
+    WHILE ptr <= CARDINALITY(_shop_ids) LOOP
+        /* insert product of order into orderline */
+        INSERT INTO orderline VALUES
+        (_order_id, _shop_ids[ptr], _product_ids[ptr], _sell_timestamps[ptr], _quantities[ptr], _shipping_costs[ptr], 'being_processed', NULL);
+
+        /* update quantity left in shop in sells table */
+        UPDATE sells 
+        SET quantity = quantity - _quantities[ptr]
+        WHERE shop_id = _shop_ids[ptr]
+        AND product_id = _product_ids[ptr]
+        AND sell_timestamp = _sell_timestamps[ptr];
+        ptr := ptr + 1;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
 /* (2) */
 
 /* NOTE:

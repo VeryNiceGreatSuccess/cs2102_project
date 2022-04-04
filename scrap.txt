@@ -1,0 +1,8 @@
+DELETE table sells;
+DELETE table product;
+DELETE table manufacturer;
+DELETE table category;
+DELETE table shop;
+DELETE table shop_complaint;
+DELETE table complaint;
+DELETE table users;
