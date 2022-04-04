@@ -376,7 +376,7 @@ RETURNS TRIGGER AS $$
 BEGIN
 
     IF (NEW.id IN (SELECT id FROM comment_complaint) OR NEW.id IN (SELECT id FROM delivery_complaint)) THEN
-        RAISE EXCEPTION 'Comment can only be either a delivery-related complaint, a shop-related complaint or a comment-related complaint!';
+        RAISE EXCEPTION 'Complaint can only be either a delivery-related complaint, a shop-related complaint or a comment-related complaint!';
     ELSE
         RETURN NEW;
     END IF;
@@ -387,7 +387,7 @@ CREATE OR REPLACE FUNCTION trigger12b_func()
 RETURNS TRIGGER AS $$
 BEGIN
  IF (NEW.id IN (SELECT id FROM shop_complaint) OR NEW.id IN (SELECT id FROM delivery_complaint)) THEN
-        RAISE EXCEPTION 'Comment can only be either a delivery-related complaint, a shop-related complaint or a comment-related complaint!';
+        RAISE EXCEPTION 'Complaint can only be either a delivery-related complaint, a shop-related complaint or a comment-related complaint!';
     ELSE
         RETURN NEW;
     END IF;
@@ -398,7 +398,7 @@ CREATE OR REPLACE FUNCTION trigger12c_func()
 RETURNS TRIGGER AS $$
 BEGIN
  IF (NEW.id IN (SELECT id FROM comment_complaint) OR NEW.id IN (SELECT id FROM shop_complaint)) THEN
-        RAISE EXCEPTION 'Comment can only be either a delivery-related complaint, a shop-related complaint or a comment-related complaint!';
+        RAISE EXCEPTION 'Complaint can only be either a delivery-related complaint, a shop-related complaint or a comment-related complaint!';
     ELSE
         RETURN NEW;
     END IF;
@@ -412,7 +412,7 @@ BEGIN
     OR NEW.id IN (SELECT id FROM delivery_complaint)) THEN
         RETURN NEW;
     ELSE
-        RAISE EXCEPTION 'Comment has to be either a delivery-related complaint, a shop-related complaint or a comment-related complaint!';
+        RAISE EXCEPTION 'Complaint has to be either a delivery-related complaint, a shop-related complaint or a comment-related complaint!';
     END IF;
 END;
 $$ LANGUAGE plpgsql;
@@ -442,6 +442,23 @@ FOR EACH ROW
     EXECUTE FUNCTION trigger12d_func();
 
 /* --- Procedures --------------------------------------------------------------------------- */
+/* (1) */
+
+/* NOTE:
+    the names of the input parameters have been changed -> they are prefixed with an underscore "_"
+
+   WHY:
+    because the attribute names in the "place_order" relations were identical to the original names of the input paramters,
+    which will cause ambiguity
+*/
+CREATE OR REPLACE PROCEDURE place_order(_user_id INTEGER, _coupon_id INTEGER, _shipping_address TEXT, _shop_ids INTEGER[],
+                                        _product_ids INTEGER[], _sell_timestamps TIMESTAMP[], _quantities INTEGER[],
+                                        _shipping_costs NUMERIC[])
+AS $$
+BEGIN
+
+END;
+$$ LANGUAGE plpgsql;
 
 /* (2) */
 
@@ -546,6 +563,91 @@ $$ LANGUAGE plpgsql;
 
 
 /* --- Functions ---------------------------------------------------------------------------- */
+/* (1) */
+CREATE OR REPLACE FUNCTION view_comments(_shop_id INTEGER, _product_id INTEGER, _sell_timestamp TIMESTAMP)
+RETURNS TABLE(username TEXT, content TEXT, rating INTEGER, comment_timestamp TIMESTAMP)
+AS $$
+BEGIN
+RETURN QUERY (
+    WITH
+        /* find all orders made related to the current shop */
+        all_orders AS (
+            SELECT O.order_id
+            FROM orderline O
+            WHERE _shop_id = O.shop_id
+            AND _product_id = O.product_id
+            AND _sell_timestamp = O.sell_timestamp
+            GROUP BY O.order_id
+        ),
+        /* find all reviews */
+        all_reviews AS (
+            SELECT DISTINCT R1.id, R1.user_id,
+                (SELECT R2.content
+                 FROM review_version R2
+                 WHERE R2.review_id = R1.id
+                 ORDER BY R2.review_timestamp DESC
+                 LIMIT 1),
+                (SELECT R2.rating
+                 FROM review_version R2
+                 WHERE R2.review_id = R1.id
+                 ORDER BY R2.review_timestamp DESC
+                 LIMIT 1),
+                (SELECT R2.review_timestamp
+                 FROM review_version R2
+                 WHERE R2.review_id = R1.id
+                 ORDER BY R2.review_timestamp DESC
+                 LIMIT 1)
+            FROM (comment natural join review) R1
+            WHERE R1.order_id IN (
+                SELECT order_id
+                FROM all_orders
+            )
+        ),
+        /* find all replies */
+        all_replies AS (
+            SELECT DISTINCT R1.id, R1.user_id,
+                (SELECT R2.content
+                    FROM reply_version R2
+                    WHERE R2.reply_id = R1.id
+                    ORDER BY R2.reply_timestamp DESC
+                    LIMIT 1),
+                    NULL::INTEGER as rating,
+                (SELECT R2.reply_timestamp
+                    FROM reply_version R2
+                    WHERE R2.reply_id = R1.id
+                    ORDER BY R2.reply_timestamp DESC
+                    LIMIT 1)
+            FROM (comment natural join reply) R1
+            WHERE R1.other_comment_id IN (
+                SELECT id
+                FROM all_reviews
+            )
+        ),
+        /* find deleted users in all_reviews */
+        all_reviews_deleted_users AS (
+            SELECT DISTINCT R.id, CASE WHEN U.account_closed THEN 'A Deleted User' ELSE U.name END AS username, R.content,
+            R.rating, R.review_timestamp AS timestamp
+            FROM all_reviews R JOIN users U ON R.user_id = U.id
+        ),
+        /* find deleted users in all_replies */
+        all_replies_deleted_users AS (
+            SELECT DISTINCT R.id, CASE WHEN U.account_closed THEN 'A Deleted User' ELSE U.name END AS username, R.content,
+            R.rating, R.reply_timestamp AS timestamp
+            FROM all_replies R JOIN users U ON R.user_id = U.id
+        ),
+        /* combine all reviews and replies */
+        all_comments AS (
+            SELECT R1.id, R1.username, R1.content, R1.rating, timestamp FROM all_reviews_deleted_users R1
+            UNION
+            SELECT R2.id, R2.username, R2.content, R2.rating, timestamp FROM all_replies_deleted_users R2
+        )
+
+        SELECT C.username, C.content, C.rating, C.timestamp
+        FROM all_comments C
+        ORDER BY C.timestamp DESC, C.id
+    );
+END;
+$$ LANGUAGE plpgsql;
 
 /* (2) */
 
