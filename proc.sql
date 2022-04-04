@@ -234,7 +234,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE CONSTRAINT TRIGGER  trigger7
+CREATE CONSTRAINT TRIGGER trigger7
 AFTER INSERT ON review
 DEFERRABLE INITIALLY DEFERRED
 FOR EACH ROW EXECUTE FUNCTION trigger7_func();
@@ -271,7 +271,8 @@ CREATE OR REPLACE FUNCTION trigger8c_func()
 RETURNS TRIGGER AS $$
 BEGIN
 
-    IF (NEW.id IN (SELECT id FROM review) OR NEW.id IN (SELECT id FROM reply)) THEN
+    IF (NEW.id IN (SELECT id FROM review) AND NEW.id NOT IN (SELECT id FROM reply)) OR
+    (NEW.id NOT IN (SELECT id FROM review) AND NEW.id IN (SELECT id FROM reply))) THEN
         RETURN NEW;
     ELSE
         RAISE EXCEPTION 'Comment has to be either a review or a reply!';
