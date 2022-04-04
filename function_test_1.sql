@@ -15,6 +15,8 @@ CREATE SCHEMA public;
 
 /* USER_ONE updated his review once */
 
+/* USER_TWO is a deleted user */
+
 /* Expected result:
     Ah Ming | 'product is very good'              |  5   | '2016-06-30'
     Ah Beng | 'product broke, it sucks'           |  1   | '2016-06-29'
