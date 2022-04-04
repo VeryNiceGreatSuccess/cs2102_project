@@ -807,20 +807,19 @@ RETURN QUERY (
         /* number of negative indicators per shop */
         negative_indicators_per_shop AS (
             SELECT DISTINCT S.id, 
+                (
+                    /* scalar query to get number of refund requests per shop */
+                    COALESCE((SELECT COUNT(*) FROM no_of_refund_requests R WHERE R.shop_id = S.id), 0) + 
 
-                /*scalar query to get number of refund requests per shop */
-                ((SELECT COUNT(*) FROM no_of_refund_requests R WHERE R.shop_id = S.id) + 
+                    /* scalar query to get number of shop complaints per shop */
+                    COALESCE((SELECT COUNT(*) FROM shop_complaint SC WHERE SC.shop_id = S.id), 0) + 
 
-                /* scalar query to get number of shop complaints per shop */
-                (SELECT COUNT(*) FROM shop_complaint SC WHERE SC.shop_id = S.id) + 
+                    /* scalar query to get number of delivery complaints per shop */
+                    COALESCE((SELECT COUNT(*) FROM no_of_delivery_complaints DC WHERE DC.shop_id = S.id), 0) + 
 
-                /* scalar query to get number of delivery complaints per shop */
-                (SELECT COUNT(*) FROM no_of_delivery_complaints DC WHERE DC.shop_id = S.id) + 
-
-                /* scalar query to get number of 1-star reviews per shop */
-                (SELECT COUNT(*) FROM latest_review_version_to_shop RV WHERE RV.shop_id = S.id)) :: INTEGER
-
-                AS num_negative_indicators_per_shop
+                    /* scalar query to get number of 1-star reviews per shop */
+                    COALESCE((SELECT COUNT(*) FROM latest_review_version_to_shop RV WHERE RV.shop_id = S.id), 0)
+                ) :: INTEGER AS num_negative_indicators_per_shop
 
             FROM shop S   
 
