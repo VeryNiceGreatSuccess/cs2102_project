@@ -73,13 +73,13 @@ BEGIN;
 
     INSERT INTO refund_request VALUES 
        /* user 1 refunds 1 badminton racket */
-       (DEFAULT, 1, 1, 2, 2, '2022-01-01 00:00:00', 1, NULL, 'being_handled', NULL),
+       (DEFAULT, 1, 1, 2, 2, '2022-01-01 00:00:00', 1, '2022-01-10', 'being_handled', NULL),
 
        /* user 1 refunds 1 study table */ 
-       (DEFAULT, 1, 1, 3, 3, '2022-01-01 00:00:00', 1, NULL, 'being_handled', NULL),
+       (DEFAULT, 1, 1, 3, 3, '2022-01-01 00:00:00', 1, '2022-01-11', 'being_handled', NULL),
 
        /* user 2 refunds 1 badminton racket */
-       (DEFAULT, 1, 2, 2, 2, '2022-01-02 00:00:00', 1, NULL, 'being_handled', NULL);
+       (DEFAULT, 1, 2, 2, 2, '2022-01-02 00:00:00', 1, '2022-01-12', 'being_handled', NULL);
 
     INSERT INTO complaint VALUES 
        /* user 1 makes a (shop) complaint for shop 3 */

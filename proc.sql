@@ -158,8 +158,6 @@ BEGIN
      IF ((NEW.request_date - dd) < 30) THEN 
           RETURN NEW;
 
-     ELSEIF ((NEW.request_date IS NULL)) THEN 
-          RETURN NEW;  /* request_date can be null */ 
      ELSE 
          RAISE EXCEPTION 'Constraint 5 violated';
      END IF; 
