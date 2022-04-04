@@ -4,7 +4,7 @@
 📝 [Link to report](https://docs.google.com/document/d/1gLRTJ6jv_zPMYGIi93_ldxHyeZe1wRLD7x3gZH0OwO8/edit)
 
 ## Deadline
-⏰ Due on ***8 April 2022***
+⏰ Due on ***10 April 2022, 6pm***
 
 ## Constraints to be Enforced using Triggers
 
