@@ -1,7 +1,10 @@
 /* (4) The refund quantity must not exceed the ordered quantity. */
 
 /* --------------------------------------- insert VALID data ✅  ----*/
-
+DROP SCHEMA public CASCADE;
+CREATE SCHEMA public;
+\i schema.sql;
+\i proc.sql;
 BEGIN;
 	INSERT INTO shop VALUES
 		(1, 'Takashimaya'),
@@ -21,36 +24,41 @@ BEGIN;
 	INSERT INTO orders VALUES
 		(1, 1, NULL, 'clementi, singapore', 59.99*5);
 	INSERT INTO orderline VALUES
-		(1, 1, 1, '2016-06-22', 5, 9.99, 'shipped', '2016-06-22'),
+		(1, 1, 1, '2016-06-22', 5, 9.99, 'delivered', '2016-06-22'),
 		(1, 2, 1, '2016-06-18', 5, 9.99, 'shipped', '2016-06-18');
 COMMIT;
 
 BEGIN;
-	INSERT INTO refund_request VALUES
-		(1, NULL, 1, 1, 1, '2016-06-22', 5, '2016-07-21', 'pending', NULL, NULL);
+	INSERT INTO complaint VALUES
+		(1, 'THIS SHIT TRASH', 'pending', 1, NULL);
+	INSERT INTO delivery_complaint VALUES
+		(1, 1, 1, 1,'2016-06-22');
 COMMIT;
 
+BEGIN;
+	INSERT INTO complaint VALUES
+		(2, 'DID NOT DELIVER', 'pending', 1 , NULL);
+	INSERT INTO delivery_complaint VALUES
+		(2, 1, 2, 1, '2016-06-18');
+COMMIT;
+
+
 /* verify that insertion was SUCCESSFUL */
-
+select * from complaint;
+select * from delivery_complaint;
 DO $$
-DECLARE
-	num_refunds INT := 0;
-BEGIN	
-	SELECT count(*) INTO num_refunds
-	FROM refund_request;
-
-	IF (num_refunds = 1) THEN
-		RAISE NOTICE 'refund request was inserted ✅';
+BEGIN
+	IF ((select count(*) from delivery_complaint) = 1) 
+	AND ((select count(*) from complaint) = 1) 
+	AND ((select shop_id from delivery_complaint) = 1) THEN
+		RAISE NOTICE 'Correct delivery complaint was inserted ✅';
 	ELSE
 		RAISE WARNING 'refund request was not inserted when it should have been ❌';
 	END IF;
 END $$;
 
 /* cleanup */
-DELETE FROM refund_request;
-DELETE FROM orderline;
-DELETE FROM orders;
-DELETE FROM sells;
+
 
 -- /* ------------------------------ insert INVALID data ❌ -------- */
 
@@ -87,12 +95,5 @@ DELETE FROM sells;
 -- END $$;
 
 /* cleanup */
-DELETE FROM refund_request;
-DELETE FROM orderline;
-DELETE FROM orders;
-DELETE FROM sells;
-DELETE FROM product;
-DELETE FROM manufacturer;
-DELETE FROM category;
-DELETE FROM shop;
-DELETE FROM users;
+DROP SCHEMA public CASCADE;
+CREATE SCHEMA public;

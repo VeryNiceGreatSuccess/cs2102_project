@@ -26,7 +26,7 @@ BEGIN;
 	INSERT INTO orders VALUES
 		(1, 1, NULL, 'clementi, singapore', 59.99*5);
 	INSERT INTO orderline VALUES
-		(1, 1, 1, '2016-06-22', 5, 9.99, 'being_processed', NULL);		
+		(1, 1, 1, '2016-06-22', 5, 9.99, 'delivered', '2016-06-23');		
 COMMIT;
 
 BEGIN;
@@ -64,12 +64,12 @@ BEGIN;
 	INSERT INTO orders VALUES
 		(1, 1, NULL, 'clementi, singapore', 59.99*3);
 	INSERT INTO orderline VALUES
-		(1, 1, 1, '2016-06-22', 3, 9.99, 'being_processed', NULL);	
+		(1, 1, 1, '2016-06-22', 3, 9.99, 'delivered', '2016-06-23');	
 
 	/* customer tries to make a refund for quantity of 2+3=5 when only placed order for 3 */
 	INSERT INTO refund_request VALUES
 		(1, NULL, 1, 1, 1, '2016-06-22', 2, '2016-06-27', 'pending', NULL, NULL),
-		(2, NULL, 1, 1, 1, '2016-06-22', 3, '2016-06-27', 'pending', NULL, NULL);
+		(2, NULL, 1, 1, 1, '2016-06-22', 2, '2016-06-27', 'pending', NULL, NULL);
 COMMIT;
 
 /* verify that insertion was PREVENTED */

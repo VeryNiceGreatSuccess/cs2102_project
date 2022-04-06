@@ -1,0 +1,12 @@
+\i trigger_test_1.sql
+\i trigger_test_2.sql
+\i trigger_test_3.sql
+\i trigger_test_4.sql
+\i trigger_test_5.sql
+\i trigger_test_6.sql
+\i trigger_test_7.sql
+\i trigger_test_8.sql
+\i trigger_test_9.sql
+\i trigger_test_10.sql
+\i trigger_test_11.sql
+\i trigger_test_12.sql

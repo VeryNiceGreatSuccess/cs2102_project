@@ -222,14 +222,13 @@ BEGIN
           AND o1.product_id = NEW.product_id
          AND o1.sell_timestamp = NEW.sell_timestamp;
 
-     IF ((SELECT orders.user_id FROM orders
-     WHERE orders.id = order_id
-     LIMIT 1) = user_id) THEN 
-          RETURN NEW;
-
-      ELSE 
-           RAISE EXCEPTION 'Constraint 7 violated';
-      END IF; 
+    IF ((SELECT orders.user_id 
+        FROM orders
+        WHERE orders.id = order_id) = user_id) THEN  -- removed LIMIT 1 (order id is a pk so there shouldnt be more than 1 value returned anyway)
+            RETURN NEW;
+    ELSE 
+        RAISE EXCEPTION 'Constraint 7 violated';
+    END IF; 
 
 END;
 $$ LANGUAGE plpgsql;
@@ -272,7 +271,7 @@ RETURNS TRIGGER AS $$
 BEGIN
 
     IF (NEW.id IN (SELECT id FROM review) AND NEW.id NOT IN (SELECT id FROM reply)) OR
-    (NEW.id NOT IN (SELECT id FROM review) AND NEW.id IN (SELECT id FROM reply))) THEN
+    (NEW.id NOT IN (SELECT id FROM review) AND NEW.id IN (SELECT id FROM reply)) THEN
         RETURN NEW;
     ELSE
         RAISE EXCEPTION 'Comment has to be either a review or a reply!';
@@ -358,10 +357,10 @@ BEGIN
             AND orderline.product_id = NEW.product_id
             AND orderline.sell_timestamp = NEW.sell_timestamp;
 
-       IF (status = 'delivered') THEN 
+        IF (status = 'delivered') THEN 
             RETURN NEW;
         ELSE 
-             RAISE EXCEPTION 'Constraint 11 is violated';
+            RAISE EXCEPTION 'Constraint 11 is violated';
         END IF;
 END;
 $$ LANGUAGE plpgsql;
