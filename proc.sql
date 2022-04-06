@@ -585,9 +585,9 @@ BEGIN
     WHERE C.id = _other_comment_id; /* get the id that was auto-assigned to the the comment just inserted */
 
     /* check if a version of the reply already exists */
-    SELECT id into comment_id
-    FROM reply R
-    WHERE R.id = _user_id AND R.other_comment_id = _other_comment_id;
+    SELECT id INTO comment_id
+    FROM reply R NATURAL JOIN comment C 
+    WHERE C.id = _user_id AND R.other_comment_id = _other_comment_id;
 
     /* raise exception if other comment does not exist */
     IF (does_other_comment_exist = 0) THEN
