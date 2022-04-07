@@ -408,8 +408,10 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION trigger12d_func()
 RETURNS TRIGGER AS $$
 BEGIN
- IF (NEW.id IN (SELECT id FROM comment_complaint) OR NEW.id IN (SELECT id FROM shop_complaint)
-    OR NEW.id IN (SELECT id FROM delivery_complaint)) THEN
+ IF ((NEW.id IN (SELECT id FROM comment_complaint) AND NEW.id NOT IN (SELECT id FROM shop_complaint) AND NEW.id NOT IN (SELECT id FROM delivery_complaint))
+    OR (NEW.id IN (SELECT id FROM shop_complaint) AND NEW.id NOT IN (SELECT id FROM comment_complaint) AND NEW.id NOT IN (SELECT id FROM delivery_complaint))
+    OR (NEW.id IN (SELECT id FROM delivery_complaint) AND NEW.id NOT IN (SELECT id FROM comment_complaint) AND NEW.id NOT IN (SELECT id FROM shop_complaint)))
+    THEN
         RETURN NEW;
     ELSE
         RAISE EXCEPTION 'Complaint has to be either a delivery-related complaint, a shop-related complaint or a comment-related complaint!';
